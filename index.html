@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>PPA Monitoring System V4</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#eef2f7;
+margin:20px;
+}
+
+h1{text-align:center;}
+
+.dashboard{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin-bottom:20px;
+}
+
+.card{
+flex:1;
+padding:15px;
+color:white;
+border-radius:8px;
+text-align:center;
+}
+
+.total{background:#34495e;}
+.done{background:#27ae60;}
+.ongoing{background:#f39c12;}
+.pipeline{background:#e74c3c;}
+.forimpl{background:#191970;}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+margin-top:10px;
+}
+
+th,td{
+border:1px solid #ddd;
+padding:8px;
+text-align:center;
+}
+
+th{background:#2c3e50;color:white;}
+
+input,select{padding:6px;margin:5px;}
+
+button{
+padding:6px 10px;
+background:#2c3e50;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+.formbox{
+background:white;
+padding:10px;
+border-radius:8px;
+margin-bottom:15px;
+}
+
+#loginPage{
+max-width:350px;
+margin:auto;
+margin-top:120px;
+background:white;
+padding:25px;
+border-radius:10px;
+text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- LOGIN PAGE -->
+
+<div id="loginPage">
+
+<h2>PPA Monitoring Login</h2>
+
+<input id="username" placeholder="Username"><br><br>
+<input id="password" type="password" placeholder="Password"><br><br>
+
+<button onclick="login()">Login</button>
+
+<p id="loginMsg" style="color:red;"></p>
+
+</div>
+
+<!-- MAIN SYSTEM -->
+
+<div id="mainSystem" style="display:none;">
+
+<h1>PPA IMPLEMENTATION MONITORING SYSTEM</h1>
+
+<button onclick="logout()">Logout</button>
+
+<!-- DASHBOARD -->
+
+<div class="dashboard">
+
+<div class="card total">TOTAL<h2 id="total">0</h2></div>
+<div class="card done">COMPLETED<h2 id="completed">0</h2></div>
+<div class="card ongoing">ONGOING<h2 id="ongoing">0</h2></div>
+<div class="card pipeline">PIPELINE<h2 id="pipeline">0</h2></div>
+<div class="card forimpl">FOR IMPLEMENTATION<h2 id="forimpl">0</h2></div>
+<div class="card total">BUDGET UTILIZATION<h2 id="budgetUtil">0%</h2></div>
+
+</div>
+
+<!-- FORM -->
+
+<div class="formbox">
+
+<h3>Add PPA</h3>
+
+<input id="code" placeholder="AIP Code">
+<input id="desc" placeholder="Description">
+<input id="budget" type="number" placeholder="Budget">
+
+<select id="time">
+<option>On Time</option>
+<option>Delayed</option>
+</select>
+
+<select id="status">
+<option>Completed</option>
+<option>Ongoing</option>
+<option>Pipeline</option>
+<option>For Implementation</option>
+</select>
+
+<select id="fund">
+<option>Utilized</option>
+<option>Unutilized</option>
+</select>
+
+<button onclick="addPPA()">Save</button>
+
+</div>
+
+<!-- SEARCH + FILTER -->
+
+<input id="search" placeholder="Search..." onkeyup="searchPPA()">
+
+<select id="filterStatus" onchange="filterStatus()">
+<option value="">All</option>
+<option>Completed</option>
+<option>Ongoing</option>
+<option>Pipeline</option>
+<option>For Implementation</option>
+</select>
+
+<button onclick="printReport()">Print</button>
+
+<!-- CHARTS -->
+
+<div style="background:white;padding:10px;margin-top:10px;">
+<canvas id="ppaChart"></canvas>
+</div>
+
+<div style="background:white;padding:10px;margin-top:10px;">
+<canvas id="pieChart"></canvas>
+</div>
+
+<!-- TABLE -->
+
+<table id="ppaTable"></table>
+
+</div>
+
+<script>
+
+/* LOGIN SYSTEM */
+
+const USERS = {
+
+admin:{password:"admin123",role:"admin"},
+staff:{password:"staff123",role:"staff"}
+
+};
+
+function login(){
+
+let u=username.value;
+let p=password.value;
+
+if(USERS[u] && USERS[u].password===p){
+
+sessionStorage.setItem("role",USERS[u].role);
+
+loginPage.style.display="none";
+mainSystem.style.display="block";
+
+loadData();
+
+}else{
+
+loginMsg.innerHTML="Invalid login";
+
+}
+
+}
+
+function logout(){
+
+sessionStorage.clear();
+
+loginPage.style.display="block";
+mainSystem.style.display="none";
+
+}
+
+/* API CONNECTION */
+
+const API_URL = "https://script.google.com/macros/s/AKfycbxaplYZr1VdMcSgKBWBrRdGgk0D9HutzXE-v27YMHab1kivsiKcnlXQn_yRO2Gfbmb4ig/exec";
+
+let allData=[];
+let chart,pieChart;
+
+/* LOAD DATA */
+
+function loadData(){
+
+fetch(API_URL)
+.then(res=>res.json())
+.then(data=>{
+
+allData=data.slice(1);
+renderTable(allData);
+monitor();
+
+});
+
+}
+
+/* TABLE */
+
+function renderTable(data){
+
+let table=document.getElementById("ppaTable");
+
+table.innerHTML=`
+<tr>
+<th>Code</th>
+<th>Description</th>
+<th>Budget</th>
+<th>Time</th>
+<th>Status</th>
+<th>Fund</th>
+<th>Action</th>
+</tr>
+`;
+
+data.forEach((r,i)=>{
+
+let row=table.insertRow();
+
+r.forEach(c=>row.insertCell().innerHTML=c);
+
+row.insertCell().innerHTML=`
+<button onclick="deleteRow(${i})">Delete</button>
+`;
+
+});
+
+}
+
+/* ADD */
+
+function addPPA(){
+
+let data={
+
+code:code.value,
+desc:desc.value,
+budget:budget.value,
+time:time.value,
+status:status.value,
+fund:fund.value
+
+};
+
+fetch(API_URL,{
+method:"POST",
+body:JSON.stringify(data)
+})
+.then(()=>{
+
+alert("Saved!");
+clearForm();
+loadData();
+
+});
+
+}
+
+/* DELETE */
+
+function deleteRow(i){
+
+if(sessionStorage.getItem("role")!="admin"){
+
+alert("Admin only");
+return;
+
+}
+
+allData.splice(i,1);
+renderTable(allData);
+monitor();
+
+}
+
+/* CLEAR FORM */
+
+function clearForm(){
+
+code.value="";
+desc.value="";
+budget.value="";
+
+}
+
+/* MONITOR */
+
+function monitor(){
+
+let total=allData.length;
+
+let completed=0;
+let ongoing=0;
+let pipeline=0;
+let forimpl=0;
+
+let totalBudget=0;
+let used=0;
+
+allData.forEach(r=>{
+
+let status=r[4];
+let budget=parseFloat(r[2])||0;
+
+totalBudget+=budget;
+
+if(status=="Completed"){completed++;used+=budget;}
+else if(status=="Ongoing")ongoing++;
+else if(status=="Pipeline")pipeline++;
+else if(status=="For Implementation")forimpl++;
+
+});
+
+let percent=totalBudget?((used/totalBudget)*100).toFixed(1):0;
+
+update("total",total);
+update("completed",completed);
+update("ongoing",ongoing);
+update("pipeline",pipeline);
+update("forimpl",forimpl);
+update("budgetUtil",percent+"%");
+
+drawCharts(completed,ongoing,pipeline,forimpl);
+
+}
+
+function update(id,val){
+
+document.getElementById(id).innerHTML=val;
+
+}
+
+/* CHARTS */
+
+function drawCharts(c,o,p,f){
+
+if(chart)chart.destroy();
+
+chart=new Chart(document.getElementById("ppaChart"),{
+
+type:'bar',
+
+data:{
+labels:["Completed","Ongoing","Pipeline","For Implementation"],
+datasets:[{
+data:[c,o,p,f],
+backgroundColor:["#27ae60","#f39c12","#e74c3c","#191970"]
+}]
+}
+
+});
+
+if(pieChart)pieChart.destroy();
+
+pieChart=new Chart(document.getElementById("pieChart"),{
+
+type:'pie',
+
+data:{
+labels:["Completed","Ongoing","Pipeline","For Implementation"],
+datasets:[{
+data:[c,o,p,f]
+}]
+}
+
+});
+
+}
+
+/* SEARCH */
+
+function searchPPA(){
+
+let val=search.value.toLowerCase();
+
+renderTable(
+
+allData.filter(r=>r.join(" ").toLowerCase().includes(val))
+
+);
+
+}
+
+/* FILTER */
+
+function filterStatus(){
+
+let val=filterStatus.value;
+
+if(!val)return renderTable(allData);
+
+renderTable(
+
+allData.filter(r=>r[4]==val)
+
+);
+
+}
+
+/* PRINT */
+
+function printReport(){
+
+window.print();
+
+}
+
+</script>
+
+</body>
+</html>
