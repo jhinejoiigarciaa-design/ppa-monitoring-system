@@ -121,10 +121,17 @@ function clearForm(){
 
 function editRow(i){
   const r = allData[i];
-  ["code","desc","budget","progress"].forEach((id,j)=>document.getElementById(id).value=r[j]);
-  document.getElementById("status").value=r[3];
-  document.getElementById("fund").value=r[5];
-  editIndex=i;
+
+  ["code","desc","budget","progress"].forEach((id,j)=>
+    document.getElementById(id).value = r[j]
+  );
+
+  const status = r[3].trim();
+  document.getElementById("status").value = status;
+
+  document.getElementById("fund").value = r[5].trim();
+
+  editIndex = i;
 }
 
 async function deleteRow(i){
