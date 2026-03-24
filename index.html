@@ -47,7 +47,7 @@ th{background:#2c3e50;color:white;}
     <option>Unutilized</option>
   </select>
 
-  <button id="mainBtn" onclick="quickAdd(true)">Quick Add + Sheet</button>
+  <button id="mainBtn" onclick="quickAdd(true)">SAVED</button>
 </div>
 
 <div class="formbox">
@@ -114,7 +114,7 @@ async function quickAdd(saveToSheet=false){
 
     clearForm();
     editIndex = -1;
-    mainBtn.innerText = "Quick Add + Sheet";
+    mainBtn.innerText = "SAVED";
 
   } catch(e){
     console.error(e);
