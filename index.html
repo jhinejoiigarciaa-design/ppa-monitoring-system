@@ -1,464 +1,249 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
-<title>PPA Monitoring System V4</title>
-
+<title>PPA Monitoring System - Compact + Google Sheet</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-
-body{
-font-family:Arial;
-background:#eef2f7;
-margin:20px;
-}
-
+body{font-family:'Segoe UI';background:#eef2f7;padding:15px;}
 h1{text-align:center;}
-
-.dashboard{
-display:flex;
-flex-wrap:wrap;
-gap:10px;
-margin-bottom:20px;
-}
-
-.card{
-flex:1;
-padding:15px;
-color:white;
-border-radius:8px;
-text-align:center;
-}
-
-.total{background:#34495e;}
-.done{background:#27ae60;}
-.ongoing{background:#f39c12;}
-.pipeline{background:#e74c3c;}
-.forimpl{background:#191970;}
-
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-margin-top:10px;
-}
-
-th,td{
-border:1px solid #ddd;
-padding:8px;
-text-align:center;
-}
-
+.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px;}
+.card{padding:10px;color:white;border-radius:8px;text-align:center;}
+.total{background:#34495e;} .completed{background:#27ae60;} .ongoing{background:#f39c12;}
+.pipeline{background:#e74c3c;} .forimpl{background:#6c5ce7;} .util{background:#16a085;} .unutil{background:#c0392b;}
+.formbox{background:white;padding:8px;border-radius:8px;margin-bottom:10px;}
+input,select,button{padding:6px;margin:4px;border-radius:5px;}
+table{width:100%;background:white;border-radius:8px;border-collapse:collapse;}
+th,td{padding:8px;text-align:center;border-bottom:1px solid #ddd;}
 th{background:#2c3e50;color:white;}
-
-input,select{padding:6px;margin:5px;}
-
-button{
-padding:6px 10px;
-background:#2c3e50;
-color:white;
-border:none;
-cursor:pointer;
-}
-
-.formbox{
-background:white;
-padding:10px;
-border-radius:8px;
-margin-bottom:15px;
-}
-
-#loginPage{
-max-width:350px;
-margin:auto;
-margin-top:120px;
-background:white;
-padding:25px;
-border-radius:10px;
-text-align:center;
-}
-
+.progress{background:#ddd;height:8px;border-radius:8px;}
+.progress-bar{height:8px;background:#27ae60;border-radius:8px;}
 </style>
-
 </head>
-
 <body>
 
-<!-- LOGIN PAGE -->
-
-<div id="loginPage">
-
-<h2>PPA Monitoring Login</h2>
-
-<input id="username" placeholder="Username"><br><br>
-<input id="password" type="password" placeholder="Password"><br><br>
-
-<button onclick="login()">Login</button>
-
-<p id="loginMsg" style="color:red;"></p>
-
-</div>
-
-<!-- MAIN SYSTEM -->
-
-<div id="mainSystem" style="display:none;">
-
-<h1>PPA IMPLEMENTATION MONITORING SYSTEM</h1>
-
-<button onclick="logout()">Logout</button>
-
-<!-- DASHBOARD -->
+<h1>PPA Monitoring System</h1>
 
 <div class="dashboard">
-
-<div class="card total">TOTAL<h2 id="total">0</h2></div>
-<div class="card done">COMPLETED<h2 id="completed">0</h2></div>
-<div class="card ongoing">ONGOING<h2 id="ongoing">0</h2></div>
-<div class="card pipeline">PIPELINE<h2 id="pipeline">0</h2></div>
-<div class="card forimpl">FOR IMPLEMENTATION<h2 id="forimpl">0</h2></div>
-<div class="card total">BUDGET UTILIZATION<h2 id="budgetUtil">0%</h2></div>
-
+  <div class="card total">TOTAL<h3 id="total">0</h3></div>
+  <div class="card completed">COMPLETED<h3 id="completed">0</h3></div>
+  <div class="card ongoing">ONGOING<h3 id="ongoing">0</h3></div>
+  <div class="card pipeline">PIPELINE<h3 id="pipeline">0</h3></div>
+  <div class="card forimpl">FOR IMP<h3 id="forimpl">0</h3></div>
+  <div class="card util">UTIL<h3 id="utilized">0</h3></div>
+  <div class="card unutil">UNUTIL<h3 id="unutilized">0</h3></div>
 </div>
-
-<!-- FORM -->
 
 <div class="formbox">
-
-<h3>Add PPA</h3>
-
-<input id="code" placeholder="AIP Code">
-<input id="desc" placeholder="Description">
-<input id="budget" type="number" placeholder="Budget">
-
-<select id="time">
-<option>On Time</option>
-<option>Delayed</option>
-</select>
-
-<select id="status">
-<option>Completed</option>
-<option>Ongoing</option>
-<option>Pipeline</option>
-<option>For Implementation</option>
-</select>
-
-<select id="fund">
-<option>Utilized</option>
-<option>Unutilized</option>
-</select>
-
-<button onclick="addPPA()">Save</button>
-
+  <input id="code" placeholder="Code">
+  <input id="desc" placeholder="Description">
+  <input id="budget" type="number" placeholder="Budget">
+  <input id="progress" type="number" placeholder="Progress %">
+  <select id="status" onchange="autoProgress()">
+    <option>Completed</option><option>Ongoing</option><option>Pipeline</option><option>For Implementation</option>
+  </select>
+  <select id="fund"><option>Utilized</option><option>Unutilized</option></select>
+  <button onclick="quickAdd(true)">Quick Add + Sheet</button>
 </div>
 
-<!-- SEARCH + FILTER -->
-
-<input id="search" placeholder="Search..." onkeyup="searchPPA()">
-
-<select id="filterStatus" onchange="filterStatus()">
-<option value="">All</option>
-<option>Completed</option>
-<option>Ongoing</option>
-<option>Pipeline</option>
-<option>For Implementation</option>
-</select>
-
-<button onclick="printReport()">Print</button>
-
-<!-- CHARTS -->
-
-<div style="background:white;padding:10px;margin-top:10px;">
-<canvas id="ppaChart"></canvas>
+<div class="formbox">
+  <input id="search" placeholder="Search">
+  <button onclick="searchData()">Search</button>
+  <button onclick="refreshTable()">Refresh</button>
 </div>
 
-<div style="background:white;padding:10px;margin-top:10px;">
-<canvas id="pieChart"></canvas>
+<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">
+  <div style="width:300px;height:200px;">
+    <canvas id="chart"></canvas>
+  </div>
+  <div style="width:250px;height:200px;">
+    <canvas id="pieChart"></canvas>
+  </div>
 </div>
-
-<!-- TABLE -->
 
 <table id="ppaTable"></table>
 
-</div>
-
 <script>
+// ⚠️ Replace with your deployed Apps Script Web App URL
+const API_URL = "https://script.google.com/macros/s/AKfycbx1WpSkPd_n4iF_HhzyJzLseNZfX2z3W_WsW9qOB_nySMbJmdbOLiT63KcaFfr17HiIsQ/exec";
 
-/* LOGIN SYSTEM */
+let allData = [], editIndex=-1, chart=null;
 
-const USERS = {
-
-admin:{password:"admin123",role:"admin"},
-staff:{password:"staff123",role:"staff"}
-
-};
-
-function login(){
-
-let u=username.value;
-let p=password.value;
-
-if(USERS[u] && USERS[u].password===p){
-
-sessionStorage.setItem("role",USERS[u].role);
-
-loginPage.style.display="none";
-mainSystem.style.display="block";
-
-loadData();
-
-}else{
-
-loginMsg.innerHTML="Invalid login";
-
+function autoProgress(){
+  if(document.getElementById("status").value==="Completed")
+    document.getElementById("progress").value=100;
 }
 
+// Quick Add / Edit
+async function quickAdd(saveToSheet=false){
+  const c = document.getElementById("code").value || "N/A";
+  const d = document.getElementById("desc").value || "N/A";
+  const b = document.getElementById("budget").value || 0;
+  const s = document.getElementById("status").value;
+  const p = (s==="Completed")?100:(document.getElementById("progress").value || 0);
+  const f = document.getElementById("fund").value;
+  const row = [c,d,b,s,p,f];
+
+  if(editIndex>=0) allData[editIndex]=row;
+  else allData.push(row);
+
+  // Save to Google Sheet if API enabled
+if(saveToSheet){
+  try{
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        action: "addData",
+        row: row,
+        rowIndex: editIndex + 2
+      })
+    });
+
+    const text = await res.text();
+    console.log("SERVER RESPONSE:", text);
+
+    alert("Check console (F12)");
+  } catch(e){
+    console.error("ERROR:", e);
+    alert("❌ Connection failed - open console (F12)");
+  }
 }
 
-function logout(){
-
-sessionStorage.clear();
-
-loginPage.style.display="block";
-mainSystem.style.display="none";
-
+  editIndex=-1;
+  clearForm();
+  refreshTable();
 }
-
-/* API CONNECTION */
-
-const API_URL = "https://script.google.com/macros/s/AKfycbxaplYZr1VdMcSgKBWBrRdGgk0D9HutzXE-v27YMHab1kivsiKcnlXQn_yRO2Gfbmb4ig/exec";
-
-let allData=[];
-let chart,pieChart;
-
-/* LOAD DATA */
-
-function loadData(){
-
-fetch(API_URL)
-.then(res=>res.json())
-.then(data=>{
-
-allData=data.slice(1);
-renderTable(allData);
-monitor();
-
-});
-
-}
-
-/* TABLE */
-
-function renderTable(data){
-
-let table=document.getElementById("ppaTable");
-
-table.innerHTML=`
-<tr>
-<th>Code</th>
-<th>Description</th>
-<th>Budget</th>
-<th>Time</th>
-<th>Status</th>
-<th>Fund</th>
-<th>Action</th>
-</tr>
-`;
-
-data.forEach((r,i)=>{
-
-let row=table.insertRow();
-
-r.forEach(c=>row.insertCell().innerHTML=c);
-
-row.insertCell().innerHTML=`
-<button onclick="deleteRow(${i})">Delete</button>
-`;
-
-});
-
-}
-
-/* ADD */
-
-function addPPA(){
-
-let data={
-
-code:code.value,
-desc:desc.value,
-budget:budget.value,
-time:time.value,
-status:status.value,
-fund:fund.value
-
-};
-
-fetch(API_URL,{
-method:"POST",
-body:JSON.stringify(data)
-})
-.then(()=>{
-
-alert("Saved!");
-clearForm();
-loadData();
-
-});
-
-}
-
-/* DELETE */
-
-function deleteRow(i){
-
-if(sessionStorage.getItem("role")!="admin"){
-
-alert("Admin only");
-return;
-
-}
-
-allData.splice(i,1);
-renderTable(allData);
-monitor();
-
-}
-
-/* CLEAR FORM */
 
 function clearForm(){
-
-code.value="";
-desc.value="";
-budget.value="";
-
+  ["code","desc","budget","progress"].forEach(id=>document.getElementById(id).value="");
 }
 
-/* MONITOR */
-
-function monitor(){
-
-let total=allData.length;
-
-let completed=0;
-let ongoing=0;
-let pipeline=0;
-let forimpl=0;
-
-let totalBudget=0;
-let used=0;
-
-allData.forEach(r=>{
-
-let status=r[4];
-let budget=parseFloat(r[2])||0;
-
-totalBudget+=budget;
-
-if(status=="Completed"){completed++;used+=budget;}
-else if(status=="Ongoing")ongoing++;
-else if(status=="Pipeline")pipeline++;
-else if(status=="For Implementation")forimpl++;
-
-});
-
-let percent=totalBudget?((used/totalBudget)*100).toFixed(1):0;
-
-update("total",total);
-update("completed",completed);
-update("ongoing",ongoing);
-update("pipeline",pipeline);
-update("forimpl",forimpl);
-update("budgetUtil",percent+"%");
-
-drawCharts(completed,ongoing,pipeline,forimpl);
-
+function editRow(i){
+  const r = allData[i];
+  ["code","desc","budget","progress"].forEach((id,j)=>document.getElementById(id).value=r[j]);
+  document.getElementById("status").value=r[3];
+  document.getElementById("fund").value=r[5];
+  editIndex=i;
 }
 
-function update(id,val){
+async function deleteRow(i){
+  if(confirm("Delete?")){
+    allData.splice(i,1);
 
-document.getElementById(id).innerHTML=val;
+    try{
+      await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action: "deleteData",
+          rowIndex: i + 2
+        })
+      });
+    } catch(e){
+      console.warn("Sheet delete failed");
+    }
 
+    refreshTable();
+  }
 }
 
-/* CHARTS */
-
-function drawCharts(c,o,p,f){
-
-if(chart)chart.destroy();
-
-chart=new Chart(document.getElementById("ppaChart"),{
-
-type:'bar',
-
-data:{
-labels:["Completed","Ongoing","Pipeline","For Implementation"],
-datasets:[{
-data:[c,o,p,f],
-backgroundColor:["#27ae60","#f39c12","#e74c3c","#191970"]
-}]
+function renderTable(data){
+  let html = `<tr><th>Code</th><th>Description</th><th>Budget</th><th>Status</th><th>Progress</th><th>Fund</th><th>Action</th></tr>`;
+  data.forEach((r,i)=>{
+    html+=`<tr>
+      <td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td>
+      <td>${r[3]}</td>
+      <td><div class="progress"><div class="progress-bar" style="width:${r[4]}%"></div></div>${r[4]}%</td>
+      <td>${r[5]}</td>
+      <td><button onclick="editRow(${i})">Edit</button>
+          <button onclick="deleteRow(${i})">Del</button></td>
+    </tr>`;
+  });
+  document.getElementById("ppaTable").innerHTML = html;
 }
 
-});
-
-if(pieChart)pieChart.destroy();
-
-pieChart=new Chart(document.getElementById("pieChart"),{
-
-type:'pie',
-
-data:{
-labels:["Completed","Ongoing","Pipeline","For Implementation"],
-datasets:[{
-data:[c,o,p,f]
-}]
+// Dashboard + Chart
+function refreshTable(){
+  renderTable(allData);
+  let counts = {total:allData.length, completed:0, ongoing:0, pipeline:0, forimpl:0, utilized:0, unutilized:0};
+  allData.forEach(r=>{
+    const s=r[3].toLowerCase(), f=r[5].toLowerCase();
+    if(s==="completed") counts.completed++;
+    else if(s==="ongoing") counts.ongoing++;
+    else if(s==="pipeline") counts.pipeline++;
+    else counts.forimpl++;
+    if(f==="utilized") counts.utilized++; else counts.unutilized++;
+  });
+  Object.keys(counts).forEach(id=>document.getElementById(id).innerText=counts[id]);
+  drawChart(counts);
 }
 
-});
+let pieChart = null;
 
+function drawChart(c){
+
+  const barCanvas = document.getElementById("chart");
+  const pieCanvas = document.getElementById("pieChart");
+
+
+  barCanvas.height = 200;
+  pieCanvas.height = 200;
+
+  // BAR CHART
+  if(chart) chart.destroy();
+  chart = new Chart(barCanvas,{
+    type:"bar",
+    data:{
+      labels:["Completed","Ongoing","Pipeline","For Impl"],
+      datasets:[{
+        label:"PPA Count",
+        data:[c.completed,c.ongoing,c.pipeline,c.forimpl],
+        backgroundColor:['#27ae60','#f39c12','#e74c3c','#6c5ce7']
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false, // ⭐ THIS FIXES SIZE
+      plugins:{ legend:{display:false} },
+      scales:{
+        y:{
+          beginAtZero:true,
+          ticks:{ precision:0 }
+        }
+      }
+    }
+  });
+
+  // PIE CHART
+  if(pieChart) pieChart.destroy();
+  pieChart = new Chart(pieCanvas,{
+    type:"pie",
+    data:{
+      labels:["Utilized","Unutilized"],
+      datasets:[{
+        data:[c.utilized,c.unutilized],
+        backgroundColor:["#16a085","#c0392b"]
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false, // ⭐ THIS FIXES SIZE
+      plugins:{ legend:{position:'bottom'} }
+    }
+  });
 }
 
-/* SEARCH */
-
-function searchPPA(){
-
-let val=search.value.toLowerCase();
-
-renderTable(
-
-allData.filter(r=>r.join(" ").toLowerCase().includes(val))
-
-);
-
+function searchData(){
+  const val = document.getElementById("search").value.toLowerCase();
+  const filtered = allData.filter(r=>r.join(" ").toLowerCase().includes(val));
+  renderTable(filtered);
 }
 
-/* FILTER */
-
-function filterStatus(){
-
-let val=filterStatus.value;
-
-if(!val)return renderTable(allData);
-
-renderTable(
-
-allData.filter(r=>r[4]==val)
-
-);
-
-}
-
-/* PRINT */
-
-function printReport(){
-
-window.print();
-
-}
-
+refreshTable();
 </script>
-
 </body>
 </html>
