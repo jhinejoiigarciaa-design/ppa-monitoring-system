@@ -3,46 +3,51 @@
 <head>
 <title>PPA Monitoring System</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 body{font-family:'Segoe UI';background:#eef2f7;padding:15px;}
 h1{text-align:center;}
+
 .dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px;}
 .card{padding:10px;color:white;border-radius:8px;text-align:center;}
 .total{background:#34495e;} .completed{background:#27ae60;} .ongoing{background:#f39c12;}
 .pipeline{background:#e74c3c;} .forimpl{background:#6c5ce7;} .util{background:#16a085;} .unutil{background:#c0392b;}
+
 .formbox{background:white;padding:8px;border-radius:8px;margin-bottom:10px;}
 input,select,button{padding:6px;margin:4px;border-radius:5px;}
+
 table{width:100%;background:white;border-radius:8px;border-collapse:collapse;}
 th,td{padding:8px;text-align:center;border-bottom:1px solid #ddd;}
 th{background:#2c3e50;color:white;}
+
 .progress{background:#ddd;height:8px;border-radius:8px;}
 .progress-bar{height:8px;background:#27ae60;border-radius:8px;}
 </style>
 </head>
+
 <body>
 
-<h1>Pasig City Anti-Drug Abuse Office PPA Monitoring System</h1>
-
-<div class="dashboard">
-  <div class="card total">TOTAL<h3 id="total">0</h3></div>
-  <div class="card completed">COMPLETED<h3 id="completed">0</h3></div>
-  <div class="card ongoing">ONGOING<h3 id="ongoing">0</h3></div>
-  <div class="card pipeline">PIPELINE<h3 id="pipeline">0</h3></div>
-  <div class="card forimpl">FOR IMP<h3 id="forimpl">0</h3></div>
-  <div class="card util">UTIL<h3 id="utilized">0</h3></div>
-  <div class="card unutil">UNUTIL<h3 id="unutilized">0</h3></div>
-</div>
+<h1>PPA Monitoring System</h1>
 
 <div class="formbox">
   <input id="code" placeholder="Code">
   <input id="desc" placeholder="Description">
   <input id="budget" type="number" placeholder="Budget">
   <input id="progress" type="number" placeholder="Progress %">
+
   <select id="status" onchange="autoProgress()">
-    <option>Completed</option><option>Ongoing</option><option>Pipeline</option><option>For Implementation</option>
+    <option>Completed</option>
+    <option>Ongoing</option>
+    <option>Pipeline</option>
+    <option>For Implementation</option>
   </select>
-  <select id="fund"><option>Utilized</option><option>Unutilized</option></select>
-  <button onclick="quickAdd(true)">Quick Add + Sheet</button>
+
+  <select id="fund">
+    <option>Utilized</option>
+    <option>Unutilized</option>
+  </select>
+
+  <button id="mainBtn" onclick="quickAdd(true)">Quick Add + Sheet</button>
 </div>
 
 <div class="formbox">
@@ -51,36 +56,29 @@ th{background:#2c3e50;color:white;}
   <button onclick="refreshTable()">Refresh</button>
 </div>
 
-<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">
-  <div style="width:300px;height:200px;">
-    <canvas id="chart"></canvas>
-  </div>
-  <div style="width:250px;height:200px;">
-    <canvas id="pieChart"></canvas>
-  </div>
-</div>
-
 <table id="ppaTable"></table>
 
 <script>
-// ⚠️ Replace with your deployed Apps Script Web App URL
 const API_URL = "https://script.google.com/macros/s/AKfycbyp48afWyRgSVsxaE80HFTccI77oW-ARxPi18-GxAyZkHw_9rUovuzt-JCo1fGqcKHSnA/exec";
 
-let allData = [], editIndex=-1, chart=null;
+let allData = [];
+let editIndex = -1;
 
 function autoProgress(){
-  if(document.getElementById("status").value==="Completed")
-    document.getElementById("progress").value=100;
+  if(document.getElementById("status").value === "Completed"){
+    document.getElementById("progress").value = 100;
+  }
 }
 
-// Quick Add / Edit
+// ✅ ADD / UPDATE
 async function quickAdd(saveToSheet=false){
-  const c = document.getElementById("code").value || "";
-  const d = document.getElementById("desc").value || "";
-  const b = document.getElementById("budget").value || 0;
-  const s = document.getElementById("status").value;
-  const p = (s==="Completed")?100:(document.getElementById("progress").value || 0);
-  const f = document.getElementById("fund").value;
+
+  const c = code.value;
+  const d = desc.value;
+  const b = budget.value || 0;
+  const s = status.value;
+  const p = (s === "Completed") ? 100 : (progress.value || 0);
+  const f = fund.value;
 
   if(!c || !d){
     alert("Please fill required fields");
@@ -90,7 +88,8 @@ async function quickAdd(saveToSheet=false){
   if(!saveToSheet) return;
 
   let actionType = "addData";
-  let paramsObj = {
+
+  const paramsObj = {
     code: c,
     desc: d,
     budget: b,
@@ -99,10 +98,9 @@ async function quickAdd(saveToSheet=false){
     fund: f
   };
 
-  // ✅ IF EDIT MODE → update instead of add
   if(editIndex !== -1){
     actionType = "updateData";
-    paramsObj.rowIndex = allData[editIndex][6]; // actual sheet row
+    paramsObj.rowIndex = allData[editIndex][6];
   }
 
   const params = new URLSearchParams({
@@ -111,33 +109,36 @@ async function quickAdd(saveToSheet=false){
   });
 
   try {
-    const res = await fetch(`${API_URL}?${params}`);
-    const data = await res.json();
-    console.log("SERVER RESPONSE:", data);
-
+    await fetch(`${API_URL}?${params}`);
     await loadFromSheet();
-    clearForm();
 
-    // ✅ reset edit mode
+    clearForm();
     editIndex = -1;
+    mainBtn.innerText = "Quick Add + Sheet";
 
   } catch(e){
-    console.error("ERROR:", e);
-    alert("❌ Connection failed");
+    console.error(e);
+    alert("Connection error");
   }
 }
+
 function clearForm(){
-  ["code","desc","budget","progress"].forEach(id=>document.getElementById(id).value="");
+  code.value = "";
+  desc.value = "";
+  budget.value = "";
+  progress.value = "";
 }
 
+// ✅ EDIT
 function editRow(i){
   const r = allData[i];
 
-  document.getElementById("code").value = r[0];
-  document.getElementById("desc").value = r[1];
-  document.getElementById("budget").value = r[2];
-  document.getElementById("progress").value = r[4];
+  code.value = r[0];
+  desc.value = r[1];
+  budget.value = r[2];
+  progress.value = r[4];
 
+  // status safe mapping
   const statusSelect = document.getElementById("status");
   const rawStatus = (r[3] || "").toString().trim().toLowerCase();
 
@@ -150,145 +151,95 @@ function editRow(i){
 
   statusSelect.value = statusMap[rawStatus] || "Ongoing";
 
-  document.getElementById("fund").value = r[5].trim();
+  // fund safe
+  const rawFund = (r[5] || "").toString().trim().toLowerCase();
+  fund.value = rawFund === "utilized" ? "Utilized" : "Unutilized";
 
   editIndex = i;
-
-  // optional UX
-  document.querySelector("button[onclick='quickAdd(true)']").innerText = "Update";
+  mainBtn.innerText = "Update";
 }
 
+// ✅ DELETE
 async function deleteRow(i){
   if(confirm("Delete?")){
-    const rowIndex = allData[i][6]; // ✅ FIXED
+    const rowIndex = allData[i][6];
 
-    try{
-      const params = new URLSearchParams({
-        action: "deleteData",
-        rowIndex: rowIndex
-      });
+    const params = new URLSearchParams({
+      action: "deleteData",
+      rowIndex: rowIndex
+    });
 
-      const res = await fetch(`${API_URL}?${params}`);
-      const data = await res.json();
-      console.log("DELETE RESPONSE:", data);
-
-      // ✅ reload from sheet (important!)
-      await loadFromSheet();
-
-    } catch(e){
-      console.warn("Sheet delete failed", e);
-    }
+    await fetch(`${API_URL}?${params}`);
+    loadFromSheet();
   }
 }
-  
+
+// ✅ TABLE
 function renderTable(data){
-  let html = `<tr><th>Code</th><th>Description</th><th>Budget</th><th>Status</th><th>Progress</th><th>Fund</th><th>Action</th></tr>`;
+  let html = `<tr>
+    <th>Code</th>
+    <th>Description</th>
+    <th>Budget</th>
+    <th>Status</th>
+    <th>Progress</th>
+    <th>Fund</th>
+    <th>Action</th>
+  </tr>`;
+
   data.forEach((r,i)=>{
-    html+=`<tr>
-      <td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td>
+    html += `<tr>
+      <td>${r[0]}</td>
+      <td>${r[1]}</td>
+      <td>${r[2]}</td>
       <td>${r[3]}</td>
-      <td><div class="progress"><div class="progress-bar" style="width:${r[4]}%"></div></div>${r[4]}%</td>
+      <td>
+        <div class="progress">
+          <div class="progress-bar" style="width:${r[4]}%"></div>
+        </div>
+        ${r[4]}%
+      </td>
       <td>${r[5]}</td>
-      <td><button onclick="editRow(${i})">Edit</button>
-          <button onclick="deleteRow(${i})">Del</button></td>
+      <td>
+        <button onclick="editRow(${i})">Edit</button>
+        <button onclick="deleteRow(${i})">Del</button>
+      </td>
     </tr>`;
   });
-  document.getElementById("ppaTable").innerHTML = html;
+
+  ppaTable.innerHTML = html;
 }
 
-// Dashboard + Chart
-function refreshTable(){
-  renderTable(allData);
-  let counts = {total:allData.length, completed:0, ongoing:0, pipeline:0, forimpl:0, utilized:0, unutilized:0};
-  allData.forEach(r=>{
-    const s=r[3].toLowerCase(), f=r[5].toLowerCase();
-    if(s==="completed") counts.completed++;
-    else if(s==="ongoing") counts.ongoing++;
-    else if(s==="pipeline") counts.pipeline++;
-    else counts.forimpl++;
-    if(f==="utilized") counts.utilized++; else counts.unutilized++;
-  });
-  Object.keys(counts).forEach(id=>document.getElementById(id).innerText=counts[id]);
-  drawChart(counts);
-}
-
-let pieChart = null;
-
-function drawChart(c){
-
-  const barCanvas = document.getElementById("chart");
-  const pieCanvas = document.getElementById("pieChart");
-
-
-  barCanvas.height = 200;
-  pieCanvas.height = 200;
-
-  // BAR CHART
-  if(chart) chart.destroy();
-  chart = new Chart(barCanvas,{
-    type:"bar",
-    data:{
-      labels:["Completed","Ongoing","Pipeline","For Impl"],
-      datasets:[{
-        label:"PPA Count",
-        data:[c.completed,c.ongoing,c.pipeline,c.forimpl],
-        backgroundColor:['#27ae60','#f39c12','#e74c3c','#6c5ce7']
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false, // ⭐ THIS FIXES SIZE
-      plugins:{ legend:{display:false} },
-      scales:{
-        y:{
-          beginAtZero:true,
-          ticks:{ precision:0 }
-        }
-      }
-    }
-  });
-
-  // PIE CHART
-  if(pieChart) pieChart.destroy();
-  pieChart = new Chart(pieCanvas,{
-    type:"pie",
-    data:{
-      labels:["Utilized","Unutilized"],
-      datasets:[{
-        data:[c.utilized,c.unutilized],
-        backgroundColor:["#16a085","#c0392b"]
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false, // ⭐ THIS FIXES SIZE
-      plugins:{ legend:{position:'bottom'} }
-    }
-  });
-}
-
+// ✅ SEARCH
 function searchData(){
-  const val = document.getElementById("search").value.toLowerCase();
-  const filtered = allData.filter(r=>r.join(" ").toLowerCase().includes(val));
+  const val = search.value.toLowerCase();
+  const filtered = allData.filter(r =>
+    r.join(" ").toLowerCase().includes(val)
+  );
   renderTable(filtered);
 }
 
-loadFromSheet();
-  
+// ✅ LOAD DATA
 async function loadFromSheet(){
   try{
     const res = await fetch(`${API_URL}?action=getData`);
-    const result = await res.json();
+    const json = await res.json();
 
-    if(result.status === "success"){
-      allData = result.data;
+    if(json.status === "success"){
+      allData = json.data;
       refreshTable();
     }
-  }catch(e){
+  } catch(e){
     console.error("LOAD ERROR:", e);
-    alert("Failed to load data from sheet");
   }
 }
+
+// ✅ REFRESH
+function refreshTable(){
+  renderTable(allData);
+}
+
+loadFromSheet();
 </script>
+
 </body>
 </html>
