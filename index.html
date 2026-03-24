@@ -21,7 +21,7 @@ th{background:#2c3e50;color:white;}
 </head>
 <body>
 
-<h1>PPA Monitoring System</h1>
+<h1>Pasig City Anti-Drug Abuse Office PPA Monitoring System</h1>
 
 <div class="dashboard">
   <div class="card total">TOTAL<h3 id="total">0</h3></div>
@@ -81,37 +81,31 @@ async function quickAdd(saveToSheet=false){
   const s = document.getElementById("status").value;
   const p = (s==="Completed")?100:(document.getElementById("progress").value || 0);
   const f = document.getElementById("fund").value;
+
   const row = [c,d,b,s,p,f];
 
-  if(editIndex>=0) allData[editIndex]=row;
-  else allData.push(row);
-
-  // Save to Google Sheet if API enabled
-if(saveToSheet){
-  try{
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        action: "addData",
-        row: row,
-        rowIndex: editIndex + 2
-      })
+  if(saveToSheet){
+    const params = new URLSearchParams({
+      action: "addData",
+      code: c,
+      desc: d,
+      budget: b,
+      status: s,
+      progress: p,
+      fund: f
     });
 
-    const text = await res.text();
-    console.log("SERVER RESPONSE:", text);
-
-    alert("Check console (F12)");
-  } catch(e){
-    console.error("ERROR:", e);
-    alert("❌ Connection failed - open console (F12)");
+    try {
+      const res = await fetch(`${API_URL}?${params}`);
+      const data = await res.json();
+      console.log("SERVER RESPONSE:", data);
+    } catch(e) {
+      console.error("ERROR:", e);
+      alert("❌ Connection failed - check console (F12)");
+    }
   }
-}
 
-  editIndex=-1;
+  allData.push(row); // add to front-end array
   clearForm();
   refreshTable();
 }
