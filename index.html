@@ -74,6 +74,7 @@ function autoProgress(){
 }
 
 // Quick Add / Edit
+// Quick Add
 async function quickAdd(saveToSheet=false){
   const c = document.getElementById("code").value || "N/A";
   const d = document.getElementById("desc").value || "N/A";
@@ -97,15 +98,15 @@ async function quickAdd(saveToSheet=false){
 
     try {
       const res = await fetch(`${API_URL}?${params}`);
-      const data = await res.json();
+      const data = await res.json(); // always valid JSON
       console.log("SERVER RESPONSE:", data);
-    } catch(e) {
+    } catch(e){
       console.error("ERROR:", e);
       alert("❌ Connection failed - check console (F12)");
     }
   }
 
-  allData.push(row); // add to front-end array
+  allData.push(row); 
   clearForm();
   refreshTable();
 }
@@ -124,21 +125,20 @@ function editRow(i){
 
 async function deleteRow(i){
   if(confirm("Delete?")){
+    const rowIndex = i + 2; // your sheet row
     allData.splice(i,1);
 
     try{
-      await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          action: "deleteData",
-          rowIndex: i + 2
-        })
+      const params = new URLSearchParams({
+        action: "deleteData",
+        rowIndex: rowIndex
       });
+
+      const res = await fetch(`${API_URL}?${params}`);
+      const data = await res.json(); // always valid JSON
+      console.log("DELETE RESPONSE:", data);
     } catch(e){
-      console.warn("Sheet delete failed");
+      console.warn("Sheet delete failed", e);
     }
 
     refreshTable();
