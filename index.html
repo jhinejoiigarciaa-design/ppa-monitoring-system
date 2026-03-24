@@ -74,7 +74,6 @@ function autoProgress(){
 }
 
 // Quick Add / Edit
-// Quick Add
 async function quickAdd(saveToSheet=false){
   const c = document.getElementById("code").value || "";
   const d = document.getElementById("desc").value || "";
@@ -83,38 +82,50 @@ async function quickAdd(saveToSheet=false){
   const p = (s==="Completed")?100:(document.getElementById("progress").value || 0);
   const f = document.getElementById("fund").value;
 
-  // ✅ VALIDATION (put it here)
   if(!c || !d){
     alert("Please fill required fields");
     return;
   }
 
-  if(saveToSheet){
-    const params = new URLSearchParams({
-      action: "addData",
-      code: c,
-      desc: d,
-      budget: b,
-      status: s,
-      progress: p,
-      fund: f
-    });
+  if(!saveToSheet) return;
 
-    try {
-      const res = await fetch(`${API_URL}?${params}`);
-      const data = await res.json();
-      console.log("SERVER RESPONSE:", data);
+  let actionType = "addData";
+  let paramsObj = {
+    code: c,
+    desc: d,
+    budget: b,
+    status: s,
+    progress: p,
+    fund: f
+  };
 
-      await loadFromSheet();
-      clearForm();
+  // ✅ IF EDIT MODE → update instead of add
+  if(editIndex !== -1){
+    actionType = "updateData";
+    paramsObj.rowIndex = allData[editIndex][6]; // actual sheet row
+  }
 
-    } catch(e){
-      console.error("ERROR:", e);
-      alert("❌ Connection failed - check console (F12)");
-    }
+  const params = new URLSearchParams({
+    action: actionType,
+    ...paramsObj
+  });
+
+  try {
+    const res = await fetch(`${API_URL}?${params}`);
+    const data = await res.json();
+    console.log("SERVER RESPONSE:", data);
+
+    await loadFromSheet();
+    clearForm();
+
+    // ✅ reset edit mode
+    editIndex = -1;
+
+  } catch(e){
+    console.error("ERROR:", e);
+    alert("❌ Connection failed");
   }
 }
-
 function clearForm(){
   ["code","desc","budget","progress"].forEach(id=>document.getElementById(id).value="");
 }
@@ -122,27 +133,29 @@ function clearForm(){
 function editRow(i){
   const r = allData[i];
 
-  // code and desc are text
-  document.getElementById("code").value = r[0] || "";
-  document.getElementById("desc").value = r[1] || "";
+  document.getElementById("code").value = r[0];
+  document.getElementById("desc").value = r[1];
+  document.getElementById("budget").value = r[2];
+  document.getElementById("progress").value = r[4];
 
-  // budget & progress are numbers
-  document.getElementById("budget").value = r[2] || 0;
-  document.getElementById("progress").value = r[4] || 0;
-
-  // status safely
   const statusSelect = document.getElementById("status");
-  const statusValue = r[3].trim();
-  if ([...statusSelect.options].some(opt => opt.value === statusValue)) {
-    statusSelect.value = statusValue;
-  } else {
-    statusSelect.value = "Ongoing";
-  }
+  const rawStatus = (r[3] || "").toString().trim().toLowerCase();
 
-  // fund safely
+  const statusMap = {
+    "completed": "Completed",
+    "ongoing": "Ongoing",
+    "pipeline": "Pipeline",
+    "for implementation": "For Implementation"
+  };
+
+  statusSelect.value = statusMap[rawStatus] || "Ongoing";
+
   document.getElementById("fund").value = r[5].trim();
 
   editIndex = i;
+
+  // optional UX
+  document.querySelector("button[onclick='quickAdd(true)']").innerText = "Update";
 }
 
 async function deleteRow(i){
