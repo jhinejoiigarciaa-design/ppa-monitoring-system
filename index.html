@@ -83,8 +83,6 @@ async function quickAdd(saveToSheet=false){
   const p = (s==="Completed")?100:(document.getElementById("progress").value || 0);
   const f = document.getElementById("fund").value;
 
-  const row = [c,d,b,s,p,f];
-
   if(saveToSheet){
     const params = new URLSearchParams({
       action: "addData",
@@ -98,17 +96,18 @@ async function quickAdd(saveToSheet=false){
 
     try {
       const res = await fetch(`${API_URL}?${params}`);
-      const data = await res.json(); // always valid JSON
+      const data = await res.json();
       console.log("SERVER RESPONSE:", data);
+
+      await loadFromSheet();
+
+      clearForm(); 
+
     } catch(e){
       console.error("ERROR:", e);
       alert("❌ Connection failed - check console (F12)");
     }
   }
-
-  allData.push(row); 
-  clearForm();
-  refreshTable();
 }
 
 function clearForm(){
@@ -125,8 +124,7 @@ function editRow(i){
 
 async function deleteRow(i){
   if(confirm("Delete?")){
-    const rowIndex = i + 2; // your sheet row
-    allData.splice(i,1);
+    const rowIndex = allData[i][6]; // ✅ FIXED
 
     try{
       const params = new URLSearchParams({
@@ -135,16 +133,18 @@ async function deleteRow(i){
       });
 
       const res = await fetch(`${API_URL}?${params}`);
-      const data = await res.json(); // always valid JSON
+      const data = await res.json();
       console.log("DELETE RESPONSE:", data);
+
+      // ✅ reload from sheet (important!)
+      await loadFromSheet();
+
     } catch(e){
       console.warn("Sheet delete failed", e);
     }
-
-    refreshTable();
   }
 }
-
+  
 function renderTable(data){
   let html = `<tr><th>Code</th><th>Description</th><th>Budget</th><th>Status</th><th>Progress</th><th>Fund</th><th>Action</th></tr>`;
   data.forEach((r,i)=>{
@@ -237,7 +237,22 @@ function searchData(){
   renderTable(filtered);
 }
 
-refreshTable();
+loadFromSheet();
+  
+async function loadFromSheet(){
+  try{
+    const res = await fetch(`${API_URL}?action=getData`);
+    const result = await res.json();
+
+    if(result.status === "success"){
+      allData = result.data;
+      refreshTable();
+    }
+  }catch(e){
+    console.error("LOAD ERROR:", e);
+    alert("Failed to load data from sheet");
+  }
+}
 </script>
 </body>
 </html>
