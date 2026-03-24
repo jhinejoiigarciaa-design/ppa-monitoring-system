@@ -126,9 +126,16 @@ function editRow(i){
     document.getElementById(id).value = r[j]
   );
 
-  const status = r[3].trim();
-  document.getElementById("status").value = status;
+  const statusSelect = document.getElementById("status");
+  const statusValue = r[3].trim();
 
+  if ([...statusSelect.options].some(opt => opt.value === statusValue)) {
+    statusSelect.value = statusValue;
+  } else {
+    statusSelect.value = "Ongoing"; 
+  }
+
+  // fund (also safe)
   document.getElementById("fund").value = r[5].trim();
 
   editIndex = i;
