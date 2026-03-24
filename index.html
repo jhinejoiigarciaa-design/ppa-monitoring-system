@@ -76,12 +76,18 @@ function autoProgress(){
 // Quick Add / Edit
 // Quick Add
 async function quickAdd(saveToSheet=false){
-  const c = document.getElementById("code").value || "N/A";
-  const d = document.getElementById("desc").value || "N/A";
+  const c = document.getElementById("code").value || "";
+  const d = document.getElementById("desc").value || "";
   const b = document.getElementById("budget").value || 0;
   const s = document.getElementById("status").value;
   const p = (s==="Completed")?100:(document.getElementById("progress").value || 0);
   const f = document.getElementById("fund").value;
+
+  // ✅ VALIDATION (put it here)
+  if(!c || !d){
+    alert("Please fill required fields");
+    return;
+  }
 
   if(saveToSheet){
     const params = new URLSearchParams({
@@ -100,8 +106,7 @@ async function quickAdd(saveToSheet=false){
       console.log("SERVER RESPONSE:", data);
 
       await loadFromSheet();
-
-      clearForm(); 
+      clearForm();
 
     } catch(e){
       console.error("ERROR:", e);
