@@ -122,20 +122,24 @@ function clearForm(){
 function editRow(i){
   const r = allData[i];
 
-  ["code","desc","budget","progress"].forEach((id,j)=>
-    document.getElementById(id).value = r[j]
-  );
+  // code and desc are text
+  document.getElementById("code").value = r[0] || "";
+  document.getElementById("desc").value = r[1] || "";
 
+  // budget & progress are numbers
+  document.getElementById("budget").value = r[2] || 0;
+  document.getElementById("progress").value = r[4] || 0;
+
+  // status safely
   const statusSelect = document.getElementById("status");
   const statusValue = r[3].trim();
-
   if ([...statusSelect.options].some(opt => opt.value === statusValue)) {
     statusSelect.value = statusValue;
   } else {
-    statusSelect.value = "Ongoing"; 
+    statusSelect.value = "Ongoing";
   }
 
-  // fund (also safe)
+  // fund safely
   document.getElementById("fund").value = r[5].trim();
 
   editIndex = i;
