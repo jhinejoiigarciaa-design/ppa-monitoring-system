@@ -130,6 +130,7 @@ async function quickAdd(saveToSheet=false){
   try {
     const res = await fetch(`${API_URL}?${params}`);
     const data = await res.json();
+    console.log(data);
 
     console.log("SERVER RESPONSE:", data);
 
@@ -184,7 +185,9 @@ async function deleteRow(i){
       rowIndex: rowIndex
     });
 
-    await fetch(`${API_URL}?${params}`);
+    const res = await fetch(`${API_URL}?${params}`);
+    const data = await res.json();
+    console.log(data);
     loadFromSheet();
   }
 }
@@ -308,18 +311,23 @@ function searchData(){
 loadFromSheet();
 
 async function loadFromSheet(){
-  try{
-    const res = await fetch(`${API_URL}?action=getData`);
-    const result = await res.json();
+    try{
+        const res = await fetch(`${API_URL}?action=getData`);
+        const result = await res.json();
 
-    if(result.status === "success"){
-      allData = result.data;
-      refreshTable();
+        console.log("LOAD RESULT:", result);
+
+        if(result.status === "success"){
+            allData = result.data;
+            refreshTable();
+        } else {
+            alert("❌ Failed to load data");
+        }
+
+    } catch(e){
+        console.error("LOAD ERROR:", e);
+        alert("❌ Failed to load data from sheet");
     }
-  }catch(e){
-    console.error("LOAD ERROR:", e);
-    alert("Failed to load data from sheet");
-  }
 }
 </script>
 
