@@ -168,15 +168,19 @@
         fund: f
       };
 
-      if (editIndex !== -1) {
-        actionType = "updateData";
-        paramsObj.rowIndex = allData[editIndex][6];
-      }
+     if (editIndex !== -1) {
+  actionType = "updateData";
 
-      const params = new URLSearchParams({
-        action: actionType,
-        ...paramsObj
-      });
+  const rowIndex = allData[editIndex][6];
+
+  if (!rowIndex) {
+    alert("❌ Update failed: Missing row index");
+    console.error("Missing rowIndex:", allData[editIndex]);
+    return;
+  }
+
+  paramsObj.rowIndex = rowIndex;
+}
 
       try {
         const res = await fetch(`${API_URL}?${params}`);
@@ -200,27 +204,33 @@
     }
 
     function editRow(i) {
-      const r = allData[i];
-      document.getElementById("code").value = r[0];
-      document.getElementById("desc").value = r[1];
-      document.getElementById("budget").value = r[2];
-      document.getElementById("progress").value = r[4];
+  const r = allData[i];
 
-      const statusSelect = document.getElementById("status");
-      const rawStatus = (r[3] || "").toString().trim().toLowerCase();
+  console.log("EDIT DATA:", r); // ✅ DEBUG
 
-      const statusMap = {
-        "completed": "Completed",
-        "ongoing": "Ongoing",
-        "pipeline": "Pipeline",
-        "for implementation": "For Implementation"
-      };
+  document.getElementById("code").value = r[0] || "";
+  document.getElementById("desc").value = r[1] || "";
+  document.getElementById("budget").value = r[2] || "";
+  document.getElementById("progress").value = r[4] || 0;
 
-      statusSelect.value = statusMap[rawStatus] || "Ongoing";
-      document.getElementById("fund").value = r[5] || "Unutilized";
-      editIndex = i;
-    }
+  const statusMap = {
+    "completed": "Completed",
+    "ongoing": "Ongoing",
+    "pipeline": "Pipeline",
+    "for implementation": "For Implementation"
+  };
 
+  const rawStatus = (r[3] || "").toLowerCase().trim();
+  document.getElementById("status").value = statusMap[rawStatus] || "Ongoing";
+
+  document.getElementById("fund").value = r[5] || "Unutilized";
+
+  editIndex = i;
+
+  // ✅ UX improvement
+  document.querySelector("button").innerText = "UPDATE";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
     async function deleteRow(i) {
       if (confirm("Delete?")) {
         const rowIndex = allData[i][6];
