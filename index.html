@@ -169,21 +169,23 @@
     fund: f
   };
 
+  // ✅ UPDATE MODE
   if (editIndex !== -1) {
     actionType = "updateData";
 
     const rowIndex = allData[editIndex][6];
 
+    console.log("UPDATING ROW:", rowIndex);
+
     if (!rowIndex) {
-      alert("❌ Update failed: Missing row index");
-      console.error("Missing rowIndex:", allData[editIndex]);
+      alert("❌ Cannot update. Missing rowIndex");
       return;
     }
 
     paramsObj.rowIndex = rowIndex;
   }
 
-  // ✅ THIS WAS MISSING
+  // ✅ FIX: params was missing before
   const params = new URLSearchParams({
     action: actionType,
     ...paramsObj
@@ -195,11 +197,16 @@
 
     console.log("SERVER RESPONSE:", data);
 
+    if (data.status === "error") {
+      alert("❌ " + data.message);
+      return;
+    }
+
     await loadFromSheet();
     clearForm();
     editIndex = -1;
 
-    // ✅ Reset button
+    // reset button text
     document.querySelector("button").innerText = "SAVE";
 
   } catch (e) {
@@ -219,7 +226,7 @@
     function editRow(i) {
   const r = allData[i];
 
-  console.log("EDIT DATA:", r); // ✅ DEBUG
+  console.log("EDIT DATA:", r);
 
   document.getElementById("code").value = r[0] || "";
   document.getElementById("desc").value = r[1] || "";
@@ -240,8 +247,8 @@
 
   editIndex = i;
 
-  // ✅ UX improvement
-  document.querySelector("button").innerText = "SAVED";
+  // UI
+  document.querySelector("button").innerText = "UPDATE";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
     async function deleteRow(i) {
