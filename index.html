@@ -144,56 +144,69 @@
     }
 
     async function quickAdd(saveToSheet = false) {
-      const c = document.getElementById("code").value || "";
-      const d = document.getElementById("desc").value || "";
-      const b = document.getElementById("budget").value || 0;
-      const s = document.getElementById("status").value;
-      const p = (s === "Completed") ? 100 : (document.getElementById("progress").value || 0);
-      const f = document.getElementById("fund").value;
+  const c = document.getElementById("code").value || "";
+  const d = document.getElementById("desc").value || "";
+  const b = document.getElementById("budget").value || 0;
+  const s = document.getElementById("status").value;
+  const p = (s === "Completed") ? 100 : Number(document.getElementById("progress").value || 0);
+  const f = document.getElementById("fund").value;
 
-      if (!c || !d) {
-        alert("Please fill required fields");
-        return;
-      }
-
-      if (!saveToSheet) return;
-
-      let actionType = "addData";
-      let paramsObj = {
-        code: c,
-        desc: d,
-        budget: b,
-        status: s,
-        progress: p,
-        fund: f
-      };
-
-     if (editIndex !== -1) {
-  actionType = "updateData";
-
-  const rowIndex = allData[editIndex][6];
-
-  if (!rowIndex) {
-    alert("❌ Update failed: Missing row index");
-    console.error("Missing rowIndex:", allData[editIndex]);
+  if (!c || !d) {
+    alert("Please fill required fields");
     return;
   }
 
-  paramsObj.rowIndex = rowIndex;
-}
+  if (!saveToSheet) return;
 
-      try {
-        const res = await fetch(`${API_URL}?${params}`);
-        const data = await res.json();
-        console.log("SERVER RESPONSE:", data);
-        await loadFromSheet();
-        clearForm();
-        editIndex = -1;
-      } catch (e) {
-        console.error("ERROR:", e);
-        alert("❌ Connection failed");
-      }
+  let actionType = "addData";
+
+  let paramsObj = {
+    code: c,
+    desc: d,
+    budget: b,
+    status: s,
+    progress: p,
+    fund: f
+  };
+
+  if (editIndex !== -1) {
+    actionType = "updateData";
+
+    const rowIndex = allData[editIndex][6];
+
+    if (!rowIndex) {
+      alert("❌ Update failed: Missing row index");
+      console.error("Missing rowIndex:", allData[editIndex]);
+      return;
     }
+
+    paramsObj.rowIndex = rowIndex;
+  }
+
+  // ✅ THIS WAS MISSING
+  const params = new URLSearchParams({
+    action: actionType,
+    ...paramsObj
+  });
+
+  try {
+    const res = await fetch(`${API_URL}?${params}`);
+    const data = await res.json();
+
+    console.log("SERVER RESPONSE:", data);
+
+    await loadFromSheet();
+    clearForm();
+    editIndex = -1;
+
+    // ✅ Reset button
+    document.querySelector("button").innerText = "SAVE";
+
+  } catch (e) {
+    console.error("ERROR:", e);
+    alert("❌ Connection failed");
+  }
+}
 
     function clearForm() {
       ["code", "desc", "budget", "progress"].forEach(id => {
