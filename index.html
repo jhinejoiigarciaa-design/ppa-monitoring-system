@@ -9,19 +9,25 @@
       background:#eef2f7;
       padding:15px;
     }
-    h1{text-align:center;}
+
+    h1{
+      text-align:center;
+    }
+
     .dashboard{
       display:grid;
       grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
       gap:10px;
       margin-bottom:10px;
     }
+
     .card{
       padding:10px;
       color:white;
       border-radius:8px;
       text-align:center;
     }
+
     .total{background:#34495e;}
     .completed{background:#27ae60;}
     .ongoing{background:#f39c12;}
@@ -42,6 +48,10 @@
       margin:4px;
       border-radius:5px;
       border:1px solid #ccc;
+    }
+
+    button{
+      cursor:pointer;
     }
 
     table{
@@ -68,12 +78,17 @@
       height:8px;
       border-radius:8px;
       overflow:hidden;
+      margin-bottom:4px;
     }
 
     .progress-bar{
       height:8px;
       background:#27ae60;
       border-radius:8px;
+    }
+
+    .action-buttons button{
+      margin:2px;
     }
   </style>
 </head>
@@ -109,7 +124,8 @@
       <option>Unutilized</option>
     </select>
 
-    <button onclick="quickAdd(true)">SAVE</button>
+    <button id="saveBtn" onclick="quickAdd(true)">SAVE</button>
+    <button onclick="cancelEdit()">CANCEL</button>
   </div>
 
   <div class="formbox">
@@ -144,130 +160,146 @@
     }
 
     async function quickAdd(saveToSheet = false) {
-  const c = document.getElementById("code").value || "";
-  const d = document.getElementById("desc").value || "";
-  const b = document.getElementById("budget").value || 0;
-  const s = document.getElementById("status").value;
-  const p = (s === "Completed") ? 100 : Number(document.getElementById("progress").value || 0);
-  const f = document.getElementById("fund").value;
+      const c = document.getElementById("code").value.trim();
+      const d = document.getElementById("desc").value.trim();
+      const b = document.getElementById("budget").value || 0;
+      const s = document.getElementById("status").value;
+      const p = (s === "Completed") ? 100 : Number(document.getElementById("progress").value || 0);
+      const f = document.getElementById("fund").value;
 
-  if (!c || !d) {
-    alert("Please fill required fields");
-    return;
-  }
+      if (!c || !d) {
+        alert("Please fill required fields");
+        return;
+      }
 
-  if (!saveToSheet) return;
+      if (!saveToSheet) return;
 
-  let actionType = "addData";
+      let actionType = "addData";
+      let paramsObj = {
+        code: c,
+        desc: d,
+        budget: b,
+        status: s,
+        progress: p,
+        fund: f
+      };
 
-  let paramsObj = {
-    code: c,
-    desc: d,
-    budget: b,
-    status: s,
-    progress: p,
-    fund: f
-  };
+      // UPDATE MODE
+      if (editIndex !== -1) {
+        actionType = "updateData";
 
-  // ✅ UPDATE MODE
-  if (editIndex !== -1) {
-    actionType = "updateData";
+        // FIXED: rowIndex is stored at index 7
+        const rowIndex = allData[editIndex][7];
 
-    const rowIndex = allData[editIndex][6];
+        console.log("UPDATING ROW:", rowIndex);
 
-    console.log("UPDATING ROW:", rowIndex);
+        if (!rowIndex) {
+          alert("Cannot update. Missing rowIndex");
+          return;
+        }
 
-    if (!rowIndex) {
-      alert("❌ Cannot update. Missing rowIndex");
-      return;
+        paramsObj.rowIndex = rowIndex;
+      }
+
+      const params = new URLSearchParams({
+        action: actionType,
+        ...paramsObj
+      });
+
+      try {
+        const res = await fetch(`${API_URL}?${params}`);
+        const data = await res.json();
+
+        console.log("SERVER RESPONSE:", data);
+
+        if (data.status === "error") {
+          alert("Error: " + data.message);
+          return;
+        }
+
+        await loadFromSheet();
+        clearForm();
+        editIndex = -1;
+        document.getElementById("saveBtn").innerText = "SAVE";
+
+      } catch (e) {
+        console.error("ERROR:", e);
+        alert("Connection failed");
+      }
     }
-
-    paramsObj.rowIndex = rowIndex;
-  }
-
-  // ✅ FIX: params was missing before
-  const params = new URLSearchParams({
-    action: actionType,
-    ...paramsObj
-  });
-
-  try {
-    const res = await fetch(`${API_URL}?${params}`);
-    const data = await res.json();
-
-    console.log("SERVER RESPONSE:", data);
-
-    if (data.status === "error") {
-      alert("❌ " + data.message);
-      return;
-    }
-
-    await loadFromSheet();
-    clearForm();
-    editIndex = -1;
-
-    // reset button text
-    document.querySelector("button").innerText = "SAVE";
-
-  } catch (e) {
-    console.error("ERROR:", e);
-    alert("❌ Connection failed");
-  }
-}
 
     function clearForm() {
-      ["code", "desc", "budget", "progress"].forEach(id => {
-        document.getElementById(id).value = "";
-      });
+      document.getElementById("code").value = "";
+      document.getElementById("desc").value = "";
+      document.getElementById("budget").value = "";
+      document.getElementById("progress").value = "";
       document.getElementById("status").value = "Completed";
       document.getElementById("fund").value = "Utilized";
     }
 
+    function cancelEdit() {
+      editIndex = -1;
+      clearForm();
+      document.getElementById("saveBtn").innerText = "SAVE";
+    }
+
     function editRow(i) {
-  const r = allData[i];
+      const r = allData[i];
 
-  console.log("EDIT DATA:", r);
+      if (!r) return;
 
-  document.getElementById("code").value = r[0] || "";
-  document.getElementById("desc").value = r[1] || "";
-  document.getElementById("budget").value = r[2] || "";
-  document.getElementById("progress").value = r[4] || 0;
+      console.log("EDIT DATA:", r);
 
-  const statusMap = {
-    "completed": "Completed",
-    "ongoing": "Ongoing",
-    "pipeline": "Pipeline",
-    "for implementation": "For Implementation"
-  };
+      document.getElementById("code").value = r[0] || "";
+      document.getElementById("desc").value = r[1] || "";
+      document.getElementById("budget").value = r[2] || "";
+      document.getElementById("progress").value = r[4] || 0;
 
-  const rawStatus = (r[3] || "").toLowerCase().trim();
-  document.getElementById("status").value = statusMap[rawStatus] || "Ongoing";
+      const statusMap = {
+        "completed": "Completed",
+        "ongoing": "Ongoing",
+        "pipeline": "Pipeline",
+        "for implementation": "For Implementation"
+      };
 
-  document.getElementById("fund").value = r[5] || "Unutilized";
+      const rawStatus = (r[3] || "").toLowerCase().trim();
+      document.getElementById("status").value = statusMap[rawStatus] || "Ongoing";
+      document.getElementById("fund").value = r[5] || "Unutilized";
 
-  editIndex = i;
+      editIndex = i;
+      document.getElementById("saveBtn").innerText = "UPDATE";
 
-  // UI
-  document.querySelector("button").innerText = "UPDATE";
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     async function deleteRow(i) {
-      if (confirm("Delete?")) {
-        const rowIndex = allData[i][6];
-        const params = new URLSearchParams({
-          action: "deleteData",
-          rowIndex: rowIndex
-        });
+      if (!confirm("Delete?")) return;
 
-        try {
-          const res = await fetch(`${API_URL}?${params}`);
-          const data = await res.json();
-          console.log("DELETE RESPONSE:", data);
-          await loadFromSheet();
-        } catch (e) {
-          console.error("DELETE ERROR:", e);
-          alert("❌ Delete failed");
+      // FIXED: rowIndex is at index 7
+      const rowIndex = allData[i][7];
+
+      const params = new URLSearchParams({
+        action: "deleteData",
+        rowIndex: rowIndex
+      });
+
+      try {
+        const res = await fetch(`${API_URL}?${params}`);
+        const data = await res.json();
+
+        console.log("DELETE RESPONSE:", data);
+
+        if (data.status === "error") {
+          alert("Delete failed: " + data.message);
+          return;
         }
+
+        await loadFromSheet();
+        cancelEdit();
+
+      } catch (e) {
+        console.error("DELETE ERROR:", e);
+        alert("Delete failed");
       }
     }
 
@@ -284,7 +316,9 @@
         </tr>
       `;
 
-      data.forEach((r, i) => {
+      data.forEach((r) => {
+        const realIndex = allData.findIndex(x => x[7] === r[7]);
+
         html += `
           <tr>
             <td>${r[0] || ""}</td>
@@ -298,9 +332,9 @@
               ${r[4] || 0}%
             </td>
             <td>${r[5] || ""}</td>
-            <td>
-              <button onclick="editRow(${i})">Edit</button>
-              <button onclick="deleteRow(${i})">Del</button>
+            <td class="action-buttons">
+              <button onclick="editRow(${realIndex})">Edit</button>
+              <button onclick="deleteRow(${realIndex})">Del</button>
             </td>
           </tr>
         `;
@@ -323,8 +357,8 @@
       };
 
       allData.forEach(r => {
-        const s = (r[3] || "").toString().toLowerCase();
-        const f = (r[5] || "").toString().toLowerCase();
+        const s = (r[3] || "").toString().toLowerCase().trim();
+        const f = (r[5] || "").toString().toLowerCase().trim();
 
         if (s === "completed") counts.completed++;
         else if (s === "ongoing") counts.ongoing++;
@@ -332,7 +366,7 @@
         else if (s === "for implementation") counts.forimpl++;
 
         if (f === "utilized") counts.utilized++;
-        else counts.unutilized++;
+        else if (f === "unutilized") counts.unutilized++;
       });
 
       Object.keys(counts).forEach(id => {
@@ -394,8 +428,17 @@
     }
 
     function searchData() {
-      const val = document.getElementById("search").value.toLowerCase();
-      const filtered = allData.filter(r => r.join(" ").toLowerCase().includes(val));
+      const val = document.getElementById("search").value.toLowerCase().trim();
+
+      if (!val) {
+        renderTable(allData);
+        return;
+      }
+
+      const filtered = allData.filter(r =>
+        r.map(x => String(x)).join(" ").toLowerCase().includes(val)
+      );
+
       renderTable(filtered);
     }
 
@@ -403,17 +446,18 @@
       try {
         const res = await fetch(`${API_URL}?action=getData`);
         const result = await res.json();
+
         console.log("LOAD RESULT:", result);
 
         if (result.status === "success") {
           allData = result.data;
           refreshTable();
         } else {
-          alert("❌ Failed to load data");
+          alert("Failed to load data");
         }
       } catch (e) {
         console.error("LOAD ERROR:", e);
-        alert("❌ Failed to load data from sheet");
+        alert("Failed to load data from sheet");
       }
     }
 
