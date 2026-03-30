@@ -1,335 +1,394 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>PPA Monitoring System</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>PPA Monitoring System</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body{
+      font-family:'Segoe UI';
+      background:#eef2f7;
+      padding:15px;
+    }
+    h1{text-align:center;}
+    .dashboard{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .card{
+      padding:10px;
+      color:white;
+      border-radius:8px;
+      text-align:center;
+    }
+    .total{background:#34495e;}
+    .completed{background:#27ae60;}
+    .ongoing{background:#f39c12;}
+    .pipeline{background:#e74c3c;}
+    .forimpl{background:#6c5ce7;}
+    .util{background:#16a085;}
+    .unutil{background:#c0392b;}
 
-<style>
-body{font-family:'Segoe UI';background:#eef2f7;padding:15px;}
-h1{text-align:center;}
+    .formbox{
+      background:white;
+      padding:8px;
+      border-radius:8px;
+      margin-bottom:10px;
+    }
 
-.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px;}
-.card{padding:10px;color:white;border-radius:8px;text-align:center;}
-.total{background:#34495e;} .completed{background:#27ae60;} .ongoing{background:#f39c12;}
-.pipeline{background:#e74c3c;} .forimpl{background:#6c5ce7;} .util{background:#16a085;} .unutil{background:#c0392b;}
+    input,select,button{
+      padding:6px;
+      margin:4px;
+      border-radius:5px;
+      border:1px solid #ccc;
+    }
 
-.formbox{background:white;padding:8px;border-radius:8px;margin-bottom:10px;}
-input,select,button{padding:6px;margin:4px;border-radius:5px;}
+    table{
+      width:100%;
+      background:white;
+      border-radius:8px;
+      border-collapse:collapse;
+      overflow:hidden;
+    }
 
-table{width:100%;background:white;border-radius:8px;border-collapse:collapse;}
-th,td{padding:8px;text-align:center;border-bottom:1px solid #ddd;}
-th{background:#2c3e50;color:white;}
+    th,td{
+      padding:8px;
+      text-align:center;
+      border-bottom:1px solid #ddd;
+    }
 
-.progress{background:#ddd;height:8px;border-radius:8px;}
-.progress-bar{height:8px;background:#27ae60;border-radius:8px;}
-</style>
+    th{
+      background:#2c3e50;
+      color:white;
+    }
+
+    .progress{
+      background:#ddd;
+      height:8px;
+      border-radius:8px;
+      overflow:hidden;
+    }
+
+    .progress-bar{
+      height:8px;
+      background:#27ae60;
+      border-radius:8px;
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>Pasig City Anti-Drug Abuse Office PPA Monitoring System</h1>
+  <h1>Pasig City Anti-Drug Abuse Office PPA Monitoring System</h1>
 
-<div class="dashboard">
-  <div class="card total">TOTAL<h3 id="total">0</h3></div>
-  <div class="card completed">COMPLETED<h3 id="completed">0</h3></div>
-  <div class="card ongoing">ONGOING<h3 id="ongoing">0</h3></div>
-  <div class="card pipeline">PIPELINE<h3 id="pipeline">0</h3></div>
-  <div class="card forimpl">FOR IMP<h3 id="forimpl">0</h3></div>
-  <div class="card util">UTIL<h3 id="utilized">0</h3></div>
-  <div class="card unutil">UNUTIL<h3 id="unutilized">0</h3></div>
-</div>
-
-<div class="formbox">
-  <input id="code" placeholder="Code">
-  <input id="desc" placeholder="Description">
-  <input id="budget" type="number" placeholder="Budget">
-  <input id="progress" type="number" placeholder="Progress %">
-
-  <select id="status" onchange="autoProgress()">
-    <option>Completed</option>
-    <option>Ongoing</option>
-    <option>Pipeline</option>
-    <option>For Implementation</option>
-  </select>
-
-  <select id="fund">
-    <option>Utilized</option>
-    <option>Unutilized</option>
-  </select>
-
-  <button onclick="quickAdd(true)">Quick Add + Sheet</button>
-</div>
-
-<div class="formbox">
-  <input id="search" placeholder="Search">
-  <button onclick="searchData()">Search</button>
-  <button onclick="refreshTable()">Refresh</button>
-</div>
-
-<div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">
-  <div style="width:300px;height:200px;">
-    <canvas id="chart"></canvas>
+  <div class="dashboard">
+    <div class="card total">TOTAL<h3 id="total">0</h3></div>
+    <div class="card completed">COMPLETED<h3 id="completed">0</h3></div>
+    <div class="card ongoing">ONGOING<h3 id="ongoing">0</h3></div>
+    <div class="card pipeline">PIPELINE<h3 id="pipeline">0</h3></div>
+    <div class="card forimpl">FOR IMP<h3 id="forimpl">0</h3></div>
+    <div class="card util">UTIL<h3 id="utilized">0</h3></div>
+    <div class="card unutil">UNUTIL<h3 id="unutilized">0</h3></div>
   </div>
-  <div style="width:250px;height:200px;">
-    <canvas id="pieChart"></canvas>
+
+  <div class="formbox">
+    <input id="code" placeholder="Code">
+    <input id="desc" placeholder="Description">
+    <input id="budget" type="number" placeholder="Budget">
+    <input id="progress" type="number" placeholder="Progress %">
+
+    <select id="status" onchange="autoProgress()">
+      <option>Completed</option>
+      <option>Ongoing</option>
+      <option>Pipeline</option>
+      <option>For Implementation</option>
+    </select>
+
+    <select id="fund">
+      <option>Utilized</option>
+      <option>Unutilized</option>
+    </select>
+
+    <button onclick="quickAdd(true)">Quick Add + Sheet</button>
   </div>
-</div>
 
-<table id="ppaTable"></table>
+  <div class="formbox">
+    <input id="search" placeholder="Search">
+    <button onclick="searchData()">Search</button>
+    <button onclick="refreshTable()">Refresh</button>
+  </div>
 
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyp48afWyRgSVsxaE80HFTccI77oW-ARxPi18-GxAyZkHw_9rUovuzt-JCo1fGqcKHSnA/exec";
+  <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:15px;">
+    <div style="width:300px;height:200px;">
+      <canvas id="chart"></canvas>
+    </div>
+    <div style="width:250px;height:200px;">
+      <canvas id="pieChart"></canvas>
+    </div>
+  </div>
 
-let allData = [];
-let editIndex = -1;
-let chart = null;
-let pieChart = null;
+  <table id="ppaTable"></table>
 
-function autoProgress(){
-  if(document.getElementById("status").value==="Completed")
-    document.getElementById("progress").value=100;
-}
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyp48afWyRgSVsxaE80HFTccI77oW-ARxPi18-GxAyZkHw_9rUovuzt-JCo1fGqcKHSnA/exec";
 
-// Quick Add / Edit
-async function quickAdd(saveToSheet=false){
-  const c = document.getElementById("code").value || "";
-  const d = document.getElementById("desc").value || "";
-  const b = document.getElementById("budget").value || 0;
-  const s = document.getElementById("status").value;
-  const p = (s==="Completed")?100:(document.getElementById("progress").value || 0);
-  const f = document.getElementById("fund").value;
+    let allData = [];
+    let editIndex = -1;
+    let chart = null;
+    let pieChart = null;
 
-  if(!c || !d){
-    alert("Please fill required fields");
-    return;
-  }
-
-  if(!saveToSheet) return;
-
-  let actionType = "addData";
-
-  let paramsObj = {
-    code: c,
-    desc: d,
-    budget: b,
-    status: s,
-    progress: p,
-    fund: f
-  };
-
-  if(editIndex !== -1){
-    actionType = "updateData";
-    paramsObj.rowIndex = allData[editIndex][6];
-  }
-
-  const params = new URLSearchParams({
-    action: actionType,
-    ...paramsObj
-  });
-
-  try {
-    const res = await fetch(`${API_URL}?${params}`);
-    const data = await res.json();
-    console.log(data);
-
-    console.log("SERVER RESPONSE:", data);
-
-    await loadFromSheet();
-    clearForm();
-
-    editIndex = -1;
-
-  } catch(e){
-    console.error("ERROR:", e);
-    alert("❌ Connection failed");
-  }
-}
-
-function clearForm(){
-  ["code","desc","budget","progress"].forEach(id=>document.getElementById(id).value="");
-}
-
-// Edit
-function editRow(i){
-  const r = allData[i];
-
-  document.getElementById("code").value = r[0];
-  document.getElementById("desc").value = r[1];
-  document.getElementById("budget").value = r[2];
-  document.getElementById("progress").value = r[4];
-
-  const statusSelect = document.getElementById("status");
-  const rawStatus = (r[3] || "").toString().trim().toLowerCase();
-
-  const statusMap = {
-    "completed": "Completed",
-    "ongoing": "Ongoing",
-    "pipeline": "Pipeline",
-    "for implementation": "For Implementation"
-  };
-
-  statusSelect.value = statusMap[rawStatus] || "Ongoing";
-
-  document.getElementById("fund").value = (r[5] || "Unutilized");
-
-  editIndex = i;
-}
-
-// Delete
-async function deleteRow(i){
-  if(confirm("Delete?")){
-    const rowIndex = allData[i][6];
-
-    const params = new URLSearchParams({
-      action: "deleteData",
-      rowIndex: rowIndex
-    });
-
-    const res = await fetch(`${API_URL}?${params}`);
-    const data = await res.json();
-    console.log(data);
-    loadFromSheet();
-  }
-}
-
-// Table
-function renderTable(data){
-  let html = `<tr>
-    <th>Code</th><th>Description</th><th>Budget</th>
-    <th>Status</th><th>Progress</th><th>Fund</th><th>Action</th>
-  </tr>`;
-
-  data.forEach((r,i)=>{
-    html += `<tr>
-      <td>${r[0]}</td>
-      <td>${r[1]}</td>
-      <td>${r[2]}</td>
-      <td>${r[3]}</td>
-      <td>
-        <div class="progress">
-          <div class="progress-bar" style="width:${r[4]}%"></div>
-        </div>
-        ${r[4]}%
-      </td>
-      <td>${r[5]}</td>
-      <td>
-        <button onclick="editRow(${i})">Edit</button>
-        <button onclick="deleteRow(${i})">Del</button>
-      </td>
-    </tr>`;
-  });
-
-  document.getElementById("ppaTable").innerHTML = html;
-}
-
-// Dashboard + Chart
-function refreshTable(){
-  renderTable(allData);
-
-  let counts = {
-    total: allData.length,
-    completed: 0,
-    ongoing: 0,
-    pipeline: 0,
-    forimpl: 0,
-    utilized: 0,
-    unutilized: 0
-  };
-
-  allData.forEach(r=>{
-    const s = (r[3] || "").toLowerCase();
-    const f = (r[5] || "").toLowerCase();
-
-    if(s==="completed") counts.completed++;
-    else if(s==="ongoing") counts.ongoing++;
-    else if(s==="pipeline") counts.pipeline++;
-    else counts.forimpl++;
-
-    if(f==="utilized") counts.utilized++;
-    else counts.unutilized++;
-  });
-
-  Object.keys(counts).forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.innerText = counts[id];
-  });
-
-  drawChart(counts);
-}
-
-function drawChart(c){
-
-  const barCanvas = document.getElementById("chart");
-  const pieCanvas = document.getElementById("pieChart");
-
-  barCanvas.height = 200;
-  pieCanvas.height = 200;
-
-  if(chart) chart.destroy();
-  chart = new Chart(barCanvas,{
-    type:"bar",
-    data:{
-      labels:["Completed","Ongoing","Pipeline","For Impl"],
-      datasets:[{
-        label:"PPA Count",
-        data:[c.completed,c.ongoing,c.pipeline,c.forimpl],
-        backgroundColor:['#27ae60','#f39c12','#e74c3c','#6c5ce7']
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{ legend:{display:false} },
-      scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }
+    function autoProgress() {
+      if (document.getElementById("status").value === "Completed") {
+        document.getElementById("progress").value = 100;
+      }
     }
-  });
 
-  if(pieChart) pieChart.destroy();
-  pieChart = new Chart(pieCanvas,{
-    type:"pie",
-    data:{
-      labels:["Utilized","Unutilized"],
-      datasets:[{
-        data:[c.utilized,c.unutilized],
-        backgroundColor:["#16a085","#c0392b"]
-      }]
-    },
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{ legend:{position:'bottom'} }
+    async function quickAdd(saveToSheet = false) {
+      const c = document.getElementById("code").value || "";
+      const d = document.getElementById("desc").value || "";
+      const b = document.getElementById("budget").value || 0;
+      const s = document.getElementById("status").value;
+      const p = (s === "Completed") ? 100 : (document.getElementById("progress").value || 0);
+      const f = document.getElementById("fund").value;
+
+      if (!c || !d) {
+        alert("Please fill required fields");
+        return;
+      }
+
+      if (!saveToSheet) return;
+
+      let actionType = "addData";
+      let paramsObj = {
+        code: c,
+        desc: d,
+        budget: b,
+        status: s,
+        progress: p,
+        fund: f
+      };
+
+      if (editIndex !== -1) {
+        actionType = "updateData";
+        paramsObj.rowIndex = allData[editIndex][6];
+      }
+
+      const params = new URLSearchParams({
+        action: actionType,
+        ...paramsObj
+      });
+
+      try {
+        const res = await fetch(`${API_URL}?${params}`);
+        const data = await res.json();
+        console.log("SERVER RESPONSE:", data);
+        await loadFromSheet();
+        clearForm();
+        editIndex = -1;
+      } catch (e) {
+        console.error("ERROR:", e);
+        alert("❌ Connection failed");
+      }
     }
-  });
-}
 
-function searchData(){
-  const val = document.getElementById("search").value.toLowerCase();
-  const filtered = allData.filter(r=>r.join(" ").toLowerCase().includes(val));
-  renderTable(filtered);
-}
+    function clearForm() {
+      ["code", "desc", "budget", "progress"].forEach(id => {
+        document.getElementById(id).value = "";
+      });
+      document.getElementById("status").value = "Completed";
+      document.getElementById("fund").value = "Utilized";
+    }
 
-loadFromSheet();
+    function editRow(i) {
+      const r = allData[i];
+      document.getElementById("code").value = r[0];
+      document.getElementById("desc").value = r[1];
+      document.getElementById("budget").value = r[2];
+      document.getElementById("progress").value = r[4];
 
-async function loadFromSheet(){
-    try{
+      const statusSelect = document.getElementById("status");
+      const rawStatus = (r[3] || "").toString().trim().toLowerCase();
+
+      const statusMap = {
+        "completed": "Completed",
+        "ongoing": "Ongoing",
+        "pipeline": "Pipeline",
+        "for implementation": "For Implementation"
+      };
+
+      statusSelect.value = statusMap[rawStatus] || "Ongoing";
+      document.getElementById("fund").value = r[5] || "Unutilized";
+      editIndex = i;
+    }
+
+    async function deleteRow(i) {
+      if (confirm("Delete?")) {
+        const rowIndex = allData[i][6];
+        const params = new URLSearchParams({
+          action: "deleteData",
+          rowIndex: rowIndex
+        });
+
+        try {
+          const res = await fetch(`${API_URL}?${params}`);
+          const data = await res.json();
+          console.log("DELETE RESPONSE:", data);
+          await loadFromSheet();
+        } catch (e) {
+          console.error("DELETE ERROR:", e);
+          alert("❌ Delete failed");
+        }
+      }
+    }
+
+    function renderTable(data) {
+      let html = `
+        <tr>
+          <th>Code</th>
+          <th>Description</th>
+          <th>Budget</th>
+          <th>Status</th>
+          <th>Progress</th>
+          <th>Fund</th>
+          <th>Action</th>
+        </tr>
+      `;
+
+      data.forEach((r, i) => {
+        html += `
+          <tr>
+            <td>${r[0] || ""}</td>
+            <td>${r[1] || ""}</td>
+            <td>${r[2] || ""}</td>
+            <td>${r[3] || ""}</td>
+            <td>
+              <div class="progress">
+                <div class="progress-bar" style="width:${r[4] || 0}%"></div>
+              </div>
+              ${r[4] || 0}%
+            </td>
+            <td>${r[5] || ""}</td>
+            <td>
+              <button onclick="editRow(${i})">Edit</button>
+              <button onclick="deleteRow(${i})">Del</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("ppaTable").innerHTML = html;
+    }
+
+    function refreshTable() {
+      renderTable(allData);
+
+      let counts = {
+        total: allData.length,
+        completed: 0,
+        ongoing: 0,
+        pipeline: 0,
+        forimpl: 0,
+        utilized: 0,
+        unutilized: 0
+      };
+
+      allData.forEach(r => {
+        const s = (r[3] || "").toString().toLowerCase();
+        const f = (r[5] || "").toString().toLowerCase();
+
+        if (s === "completed") counts.completed++;
+        else if (s === "ongoing") counts.ongoing++;
+        else if (s === "pipeline") counts.pipeline++;
+        else if (s === "for implementation") counts.forimpl++;
+
+        if (f === "utilized") counts.utilized++;
+        else counts.unutilized++;
+      });
+
+      Object.keys(counts).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = counts[id];
+      });
+
+      drawChart(counts);
+    }
+
+    function drawChart(c) {
+      const barCanvas = document.getElementById("chart");
+      const pieCanvas = document.getElementById("pieChart");
+
+      if (chart) chart.destroy();
+      chart = new Chart(barCanvas, {
+        type: "bar",
+        data: {
+          labels: ["Completed", "Ongoing", "Pipeline", "For Impl"],
+          datasets: [{
+            label: "PPA Count",
+            data: [c.completed, c.ongoing, c.pipeline, c.forimpl],
+            backgroundColor: ['#27ae60', '#f39c12', '#e74c3c', '#6c5ce7']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 }
+            }
+          }
+        }
+      });
+
+      if (pieChart) pieChart.destroy();
+      pieChart = new Chart(pieCanvas, {
+        type: "pie",
+        data: {
+          labels: ["Utilized", "Unutilized"],
+          datasets: [{
+            data: [c.utilized, c.unutilized],
+            backgroundColor: ["#16a085", "#c0392b"]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom" }
+          }
+        }
+      });
+    }
+
+    function searchData() {
+      const val = document.getElementById("search").value.toLowerCase();
+      const filtered = allData.filter(r => r.join(" ").toLowerCase().includes(val));
+      renderTable(filtered);
+    }
+
+    async function loadFromSheet() {
+      try {
         const res = await fetch(`${API_URL}?action=getData`);
         const result = await res.json();
-
         console.log("LOAD RESULT:", result);
 
-        if(result.status === "success"){
-            allData = result.data;
-            refreshTable();
+        if (result.status === "success") {
+          allData = result.data;
+          refreshTable();
         } else {
-            alert("❌ Failed to load data");
+          alert("❌ Failed to load data");
         }
-
-    } catch(e){
+      } catch (e) {
         console.error("LOAD ERROR:", e);
         alert("❌ Failed to load data from sheet");
+      }
     }
-}
-</script>
+
+    loadFromSheet();
+  </script>
 
 </body>
 </html>
